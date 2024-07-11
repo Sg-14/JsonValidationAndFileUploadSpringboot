@@ -1,0 +1,224 @@
+package net.telematics.vsp.utility;
+
+
+import lombok.Generated;
+import lombok.extern.log4j.Log4j2;
+import net.telematics.request.json.handler.RequestJsonHandler;
+import org.json.JSONArray;
+import org.json.JSONObject;
+import org.springframework.stereotype.Component;
+
+import java.util.*;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static net.telematics.vsp.utility.VspConstants.*;
+
+@Component
+@Log4j2
+@Generated
+public class ValidationUtility {
+    private static final Pattern splitPattern = Pattern.compile(REGEX);
+
+    public static String getRegexByKey(String key) {
+        Map<String, String> regexMap = new HashMap<>();
+        regexMap.put(USERNAME, "[A-Za-z0-9]+");
+        regexMap.put("emailAddress", "[A-Za-z0-9-@.]+");
+        regexMap.put("email", "[A-Za-z0-9-@.]+");
+        regexMap.put(SESSION_ID, "[A-Za-z0-9-]+");
+        regexMap.put(SERVICE_ID, "[A-Za-z0-9-]+");
+        regexMap.put(OEM, "[A-Za-z0-9_]+");
+        regexMap.put("deviceEventId", "[A-Za-z0-9-]+");
+        regexMap.put("DataSessionId", "[A-Za-z0-9-]+");
+        regexMap.put(CONN_ID, "[A-Za-z0-9]+");
+        regexMap.put(INTERACTION_ID, "[A-Za-z0-9]+");
+        regexMap.put(CHAT_SESSION_ID, "[A-Za-z0-9]+");
+        regexMap.put(SIGNAL_TYPE, "[A-Za-z_ ]+");
+        regexMap.put(LANGUAGE, "[A-Za-z_ ]+");
+        regexMap.put(CALLTYPE, "[A-Za-z_ ]+");
+        regexMap.put(CALLEE_NO, "[0-9-+()]+");
+        regexMap.put("phoneNumber", "[0-9+]+");
+        regexMap.put(LATITUDE, "[0-9-.]+");
+        regexMap.put(LONGITUDE, "[0-9-.]+");
+        regexMap.put("emergencyNumber", "[0-9/-+ ]+");
+        if (key.contains("date") || key.contains("time")) {
+            return "[0-9-T-Z-/:. +\\\\]+";
+        }
+        if (regexMap.containsKey(key)) {
+            return regexMap.get(key);
+        }
+        return "[A-Z-a-z-0-9-@#$.,&_()+/\\\\ ]+";
+    }
+
+
+    public static Boolean validateRegex(String value, String regex) {
+        Pattern pattern = Pattern.compile(regex);
+        return pattern.matcher(value).matches();
+    }
+
+    public static Boolean securityCheck(String key, Object value) {
+        if (value != null) {
+            String value1 = value.toString();
+            String regex = getRegexByKey(key);
+            Boolean result = validateRegex(value1, regex);
+            return result;
+        }
+        return true;
+    }
+
+    public static String validationCheck(RequestJsonHandler requestJsonHandler) {
+        log.trace("Executing validationCheck() method :{}", requestJsonHandler);
+        try {
+            JSONObject jsonObject = new JSONObject(requestJsonHandler.getData());
+            Set<String> jsonKeys = jsonObject.keySet();
+            String result = loopForValidationCheck(jsonObject, jsonKeys);
+            if (result.isEmpty()) {
+                return "";
+            } else {
+                String[] split = splitPattern.split(result);
+                return Arrays.stream(split)
+                        .map(ValidationUtility::capitaliseFirstLetter)
+                        .collect(Collectors.joining(" "));
+            }
+        } catch (Exception e) {
+            log.error("Exception occurred at validationCheck() method :{}", e.getMessage());
+        }
+        return "";
+    }
+
+    static String capitaliseFirstLetter(String name) {
+        return name.substring(0, 1).toUpperCase() + name.substring(1);
+    }
+
+    private static String loopForValidationCheck(JSONObject jsonObject, Set<String> jsonKeys) {
+        Set<String> ignoreKeys = new HashSet<>();
+        ignoreKeys.add("gatheredInformation");
+        ignoreKeys.add("notes");
+        ignoreKeys.add("theComment");
+        ignoreKeys.add("vehicleModel");
+        ignoreKeys.add("vehicleColor");
+        ignoreKeys.add("vehicleYear");
+        ignoreKeys.add("vehicleMake");
+        ignoreKeys.add("gatheredInfo");
+        ignoreKeys.add("vehicleData");
+        ignoreKeys.add("transferMessage");
+        ignoreKeys.add("reRouteReason");
+        ignoreKeys.add("callReason");
+        ignoreKeys.add("workflowName");
+        ignoreKeys.add(FIRST_AGENT_NAME);
+        ignoreKeys.add(ANOTHER_AGENT_NAME);
+        ignoreKeys.add(AGENT_NAME);
+        ignoreKeys.add(MESSAGE);
+        ignoreKeys.add("followupCategory");
+        ignoreKeys.add("comment");
+        ignoreKeys.add("placeId");
+        ignoreKeys.add("reportTime");
+        ignoreKeys.add("updateTime");
+        ignoreKeys.add("deviceType");
+        for (String key : jsonKeys) {
+            if (ignoreKeys.contains(key)) {
+                continue;
+            }
+            Object val = jsonObject.get(key);
+            if (!"".equals(checkingInstance(val, key))) {
+                return checkingInstance(val, key);
+            }
+        }
+        return "";
+    }
+
+    public static String checkingInstance(Object val, String key) {
+        String result = "";
+        if (val instanceof JSONArray) {
+            JSONArray array = (JSONArray) val;
+            result = jsonArray(array, key);
+        } else if (val instanceof JSONObject) {
+            JSONObject jsonOb = (JSONObject) val;
+            result = jsonObj(jsonOb, key);
+        } else {
+            if (!"".equals(validIf(val, key))) {
+                result = validIf(val, key);
+            }
+        }
+        return result;
+    }
+
+
+    public static String jsonObj(JSONObject object, String key2) {
+        Set<String> innerKeys = object.keySet();
+        Set<String> ignoreKeys = new HashSet<>();
+
+        ignoreKeys.add("gatheredInformation");
+        ignoreKeys.add("notes");
+        ignoreKeys.add("theComment");
+        ignoreKeys.add("vehicleModel");
+        ignoreKeys.add("vehicleColor");
+        ignoreKeys.add("vehicleYear");
+        ignoreKeys.add("vehicleMake");
+        ignoreKeys.add("gatheredInfo");
+        ignoreKeys.add("transferMessage");
+        ignoreKeys.add("reRouteReason");
+        ignoreKeys.add("callReason");
+        ignoreKeys.add("workflowName");
+        ignoreKeys.add("vehicleData");
+        ignoreKeys.add(FIRST_AGENT_NAME);
+        ignoreKeys.add(ANOTHER_AGENT_NAME);
+        ignoreKeys.add(AGENT_NAME);
+        ignoreKeys.add(MESSAGE);
+        ignoreKeys.add("followupCategory");
+        ignoreKeys.add("comment");
+        ignoreKeys.add("placeId");
+        ignoreKeys.add("reportTime");
+        ignoreKeys.add("updateTime");
+        ignoreKeys.add("deviceType");
+        String result = "";
+        for (String key : innerKeys) {
+            if (ignoreKeys.contains(key)) {
+                continue;
+            }
+            Object val = object.get(key);
+            if (val instanceof JSONArray) {
+                JSONArray array = (JSONArray) val;
+                result = jsonArray(array, key);
+
+            } else if (val instanceof JSONObject) {
+                JSONObject jsonOb = (JSONObject) val;
+                result = jsonObj(jsonOb, key);
+            } else {
+                if (!"".equals(val)) {
+                    if (!securityCheck(key, val)) {
+                        return key;
+                    }
+                }
+            }
+        }
+        return result;
+    }
+
+    public static String jsonArray(JSONArray array, String key) {
+        if (array.length() == 0) {
+            return "";
+        } else {
+            return loopForJsonArray(array, key);
+        }
+    }
+
+    private static String loopForJsonArray(JSONArray array, String key) {
+        for (int i = 0; i < array.length(); i++) {
+            Object jObject = array.get(i);
+            if (!"".equals(checkingInstance(jObject, key))) {
+                return checkingInstance(jObject, key);
+            }
+        }
+        return "";
+    }
+
+    public static String validIf(Object jObject, String key) {
+        if (!"".equals(jObject)) {
+            if (!securityCheck(key, jObject)) {
+                return key;
+            }
+        }
+        return "";
+    }
+}
